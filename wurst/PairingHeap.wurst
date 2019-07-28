@@ -1,0 +1,136 @@
+package PairingHeap
+import LinkedList
+
+public interface Comparable
+    function gteq(Comparable rhs) returns bool
+
+    function magnitude() returns real
+
+class Node<V>
+    Comparable key
+    V value
+    Node<V> next
+    Node<V> child
+
+    construct(Comparable key, V value)
+        this.key = key
+        this.value = value
+        this.next = null
+        this.child = null
+
+function f_merge<V>(Node<V> a, Node<V> b) returns Node<V>
+    if a == null
+        return b
+    else if b == null
+        return a
+    else if a.key.gteq(b.key)
+        a.next = b.child
+        b.child = a
+        return b
+    else
+        b.next = a.child
+        a.child = b
+        return a
+
+function f_mergePairs<V>(Node<V> n) returns Node<V>
+    let e2 = n.next
+    let e3 = e2.next
+
+    if n == null
+        return null
+    else if e2 == null
+        return n
+    else
+        return f_merge(f_merge(n, e2), f_mergePairs(e3))
+
+function f_deleteMin<V>(Heap<V> h) returns V
+    let v = h.root.value
+    let c = h.root
+    h.root = f_mergePairs(h.root.child)
+    if c != null
+        destroy c
+    return v
+
+function f_isEmpty<V>(Heap<V> h) returns boolean
+    return h.root == null
+
+function f_min<V>(Heap<V> h) returns V
+    return h.root.value
+
+function f_insert<V>(Heap<V> h, Comparable k, V v)
+    h.root = f_merge(h.root, new Node(k, v))
+
+/*
+    A Heap has Comparable keys and generic value.
+**/
+public class Heap<V>
+    Node<V> root
+
+    construct(Comparable key, V value)
+        this.root = new Node<V>(key, value)
+
+    construct()
+        this.root = null
+
+    function merge(Heap<V> other)
+        this.root = f_merge(this.root, other.root)
+        destroy other
+
+    function isEmpty() returns boolean
+        return f_isEmpty(this)
+
+    function min() returns V
+        return f_min(this)
+
+    function deleteMin() returns V
+        return f_deleteMin(this)
+
+    function add(Comparable k, V v)
+        f_insert(this, k, v)
+
+/*
+    Arbitrary Comparable class which just compares string length.
+**/
+class TestComparable implements Comparable
+    string name
+
+    construct(string v)
+        name = v
+
+    override function magnitude() returns real
+        return this.name.length().toReal()
+
+    override function gteq(Comparable rhs) returns bool
+        return this.magnitude() >= rhs.magnitude()
+
+/*
+    Simple Comparable class which wraps a `real`.
+**/
+class TestComparableSimple implements Comparable
+    real val
+
+    construct(real v)
+        this.val = v
+
+    override function magnitude() returns real
+        return this.val
+
+    override function gteq(Comparable rhs) returns bool
+        return this.magnitude() >= rhs.magnitude()
+
+
+@test function tests()
+    let heap = new Heap<int>(new TestComparable("a"), 2)
+        ..merge(new Heap<int>(new TestComparable("aaaaaa"), 1))
+        ..merge(new Heap<int>(new TestComparable("aa"), 3))
+        ..merge(new Heap<int>(new TestComparable("aaa"), 0))
+        ..merge(new Heap<int>(new TestComparable("aaaaa"), 2))
+
+    let res = new LinkedList<int>()..add(
+        heap.deleteMin(),
+        heap.deleteMin(),
+        heap.deleteMin(),
+        heap.deleteMin(),
+        heap.deleteMin()
+    )
+    assertTrue(res == asList(2, 3, 0, 2, 1))
